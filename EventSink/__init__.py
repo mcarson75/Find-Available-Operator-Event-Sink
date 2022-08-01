@@ -13,7 +13,6 @@ def main(req: func.HttpRequest, outEvents: func.Out[func.Document]) -> func.Http
 
     def find_operator():
         operators = {}
-        #operator_participants = db_help.db_query(db_cont,'SELECT * FROM activeCalls c WHERE c.data.conference LIKE "stsOperator%"')
         operator_participants = db_help.db_query(db_cont,'SELECT * FROM activeCalls c WHERE c.data.service_tag = "sts-operator"')
         for p in operator_participants:
             if not p['data']['conference'] in operators:
