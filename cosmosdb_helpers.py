@@ -25,4 +25,12 @@ def db_delete(container, event):
 
 def db_query(container, query):
     results = list(container.query_items(query=query, enable_cross_partition_query=True))
-    return results    
+    return results  
+
+def db_clean(database_name, container):
+    AccountEndpoint = os.environ["mattceventsink_DOCUMENTDB"]
+    endpoint = AccountEndpoint.split(";")[0].split('=')[1]
+    key = AccountEndpoint.split("AccountKey=")[1]
+    client = CosmosClient(endpoint, key)
+    database = client.get_database_client(database=database_name)
+    database.delete_container(container)    

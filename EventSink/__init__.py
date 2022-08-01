@@ -6,14 +6,16 @@ import requests
 import cosmosdb_helpers as db_help
 import azure.functions as func
 
-db_cont = None
+db_active_calls = None
+db_events = None
 
-def main(req: func.HttpRequest, outEvents: func.Out[func.Document]) -> func.HttpResponse:
-    global db_cont
+def main(req: func.HttpRequest) -> func.HttpResponse:
+    global db_active_calls
+    global db_events
 
     def find_operator():
         operators = {}
-        operator_participants = db_help.db_query(db_cont,'SELECT * FROM activeCalls c WHERE c.data.service_tag = "sts-operator"')
+        operator_participants = db_help.db_query(db_active_calls,'SELECT * FROM activeCalls c WHERE c.data.service_tag = "sts-operator"')
         for p in operator_participants:
             if not p['data']['conference'] in operators:
                 operators[p['data']['conference']] = 1
@@ -30,8 +32,11 @@ def main(req: func.HttpRequest, outEvents: func.Out[func.Document]) -> func.Http
         return operator
             
 
-    if db_cont is None:
-        db_cont = db_help.db_init('eventDatabase', 'activeCalls', '/data/service_tag')
+    if db_active_calls is None:
+        db_active_calls = db_help.db_init('eventDatabase', 'activeCalls', '/data/service_tag')
+
+    if db_events is None:
+        db_events = db_help.db_init('eventDatabase', 'events', '/event')
 
     request_body = req.get_body()
 
@@ -40,7 +45,8 @@ def main(req: func.HttpRequest, outEvents: func.Out[func.Document]) -> func.Http
     event = dict(body)
 
     # Send all event to events container to store for reporting TODO send to a queue for furthur processing & reduce lag
-    outEvents.set(func.Document.from_json(request_body))
+    #outEvents.set(func.Document.from_json(request_body))
+    db_help.db_add(db_events, event)
 
     # Check event type and add or remove to active calls db
     if 'event' in event:    
@@ -49,7 +55,7 @@ def main(req: func.HttpRequest, outEvents: func.Out[func.Document]) -> func.Http
         
         if event_type == 'participant_connected':
             logging.info(f'Event is type {event_type}, sending to active calls db')
-            db_help.db_add(db_cont, event)
+            db_help.db_add(db_active_calls, event)
             
             if event['data']['service_tag'] == 'sts-emt' and event['data']['call_direction'] == 'in':
                 operator = find_operator()
@@ -74,7 +80,11 @@ def main(req: func.HttpRequest, outEvents: func.Out[func.Document]) -> func.Http
 
         elif event_type == 'participant_disconnected':
             logging.info(f'Event type is {event_type}, deleting from active calls db ')
-            db_help.db_delete(db_cont, event)
+            db_help.db_delete(db_active_calls, event)
+        
+        elif event_type == 'eventsink_started':
+            db_help.db_clean('eventDatabase', db_active_calls)
+            db_help.db_clean('eventDatabase', db_events)
             
         else:
             logging.info(f'Event type is {event_type}, no action')
