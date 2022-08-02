@@ -15,6 +15,21 @@
       "type": "http",
       "direction": "out",
       "name": "$return"
+    },
+    {
+      "type": "queue",
+      "direction": "out",
+      "name": "QueueAllEvents",
+      "queueName": "pxallevents",
+      "connection": "QueueStorageAccount"
+    },
+    {
+      "type": "queue",
+      "direction": "out",
+      "name": "QueueParticipantEvents",
+      "queueName": "pxpartevents",
+      "connection": "QueueStorageAccount"
     }
+
   ]
 }
