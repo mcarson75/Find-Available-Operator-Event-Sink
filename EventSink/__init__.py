@@ -15,7 +15,8 @@ def main(req: func.HttpRequest) -> func.HttpResponse:
 
     def find_operator():
         operators = {}
-        operator_participants = db_help.db_query(db_active_calls,'SELECT * FROM activeCalls c WHERE c.data.service_tag = "sts-operator"')
+        query = 'SELECT * FROM activeCalls c WHERE c.data.service_tag = "' + os.environ["OperatorServiceTag"] + '"'
+        operator_participants = db_help.db_query(db_active_calls, query)
         for p in operator_participants:
             if not p['data']['conference'] in operators:
                 operators[p['data']['conference']] = 1
@@ -23,7 +24,7 @@ def main(req: func.HttpRequest) -> func.HttpResponse:
                 operators[p['data']['conference']] += 1
         
         min_part = 1000
-        operator = 'stsOperator1'
+        operator = os.environ["OperatorConferenceBase"] + '1'
         for o in operators.keys():
             if operators[o] < min_part:
                 min_part = operators[o]
@@ -57,14 +58,14 @@ def main(req: func.HttpRequest) -> func.HttpResponse:
             logging.info(f'Event is type {event_type}, sending to active calls db')
             db_help.db_add(db_active_calls, event)
             
-            if event['data']['service_tag'] == 'sts-emt' and event['data']['call_direction'] == 'in':
+            if event['data']['service_tag'] == os.environ["CallerServiceTag"] and event['data']['call_direction'] == 'in':
                 operator = find_operator()
                 
-                fqdn = os.environ["mgt_node_fqdn"]
-                uname = os.environ["mgt_node_user"]
-                pwd = os.environ["mgt_node_pwd"]
-                dom = os.environ["conf_domain"]
-                dial_location = os.environ["dial_location"]
+                fqdn = os.environ["ManagementNodeFQDN"]
+                uname = os.environ["ManagementNodeUsername"]
+                pwd = os.environ["ManagementNodePassword"]
+                dom = os.environ["SIPDialingDomain"]
+                dial_location = os.environ["SIPDialLocation"]
                 api_dial = "/api/admin/command/v1/participant/dial/"
                 
                 data = {
@@ -72,7 +73,7 @@ def main(req: func.HttpRequest) -> func.HttpResponse:
                     'destination': operator + '@' + dom,
                     'routing': 'manual',
                     'role': 'guest',
-                    'remote_display_name': 'STS Operator',
+                    'remote_display_name': os.environ["OperatorDisplayName"],
                     'system_location': dial_location
                 }
                 
@@ -82,7 +83,7 @@ def main(req: func.HttpRequest) -> func.HttpResponse:
             logging.info(f'Event type is {event_type}, deleting from active calls db ')
             db_help.db_delete(db_active_calls, event)
         
-        elif event_type == 'eventsink_started':
+        elif event_type == 'eventsink_started' and os.environ["ClearDatabaseOnRestart"] == 'true':
             db_help.db_clean('eventDatabase', db_active_calls)
             db_help.db_clean('eventDatabase', db_events)
             
