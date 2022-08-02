@@ -17,11 +17,15 @@ def db_init(database_name, container_name, partition_key):
     return container
 
 def db_add(container, event):
-    event['id'] = event['data']['call_id']
-    container.create_item(body=event)
+    container.create_item(body=event, enable_automatic_id_generation=True)
 
 def db_delete(container, event):
-    container.delete_item(item = event['data']['call_id'], partition_key=event['data']['service_tag'])
+    pk_path = container._properties['partitionKey']['paths'][0]
+    pk = event
+    for k in pk_path.split('/'):
+        if k:
+            pk = pk[k]
+    container.delete_item(item = event['id'], partition_key=pk)
 
 def db_query(container, query):
     results = list(container.query_items(query=query, enable_cross_partition_query=True))

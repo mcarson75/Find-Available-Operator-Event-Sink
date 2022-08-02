@@ -13,6 +13,7 @@ def main(msg: func.QueueMessage) -> None:
     logging.info(f'All event queue trigger processed new item: {msg.id}, inserted: {str(msg.insertion_time)}')
     event = json.loads(msg.get_body())
 
+    # outEvents.set(func.Document.from_json(msg.get_body()))
     # Initialize "all events" database    
     if db_events is None:
         db_events = db_help.db_init('eventDatabase', 'events', '/event')

@@ -42,6 +42,7 @@ def main(msg: func.QueueMessage) -> None:
     
     if event_type == 'participant_connected':
         logging.info(f'Event is type {event_type}, sending to active calls db')
+        event['id'] = event['data']['call_id']
         db_help.db_add(db_events, event)
         
         if event['data']['service_tag'] == os.environ["CallerServiceTag"] and event['data']['call_direction'] == 'in':
