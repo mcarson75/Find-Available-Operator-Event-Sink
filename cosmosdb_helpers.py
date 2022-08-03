@@ -6,7 +6,7 @@ from azure.cosmos import exceptions, CosmosClient, PartitionKey
 
 def db_init(database_name, container_name, partition_key):
     # TODO Maybe seperate these into seperate os.environ params?
-    AccountEndpoint = os.environ["mattceventsink_DOCUMENTDB"]
+    AccountEndpoint = os.environ["DatabaseEndpoint"]
     endpoint = AccountEndpoint.split(";")[0].split('=')[1]
     key = AccountEndpoint.split("AccountKey=")[1]
     client = CosmosClient(endpoint, key)
@@ -32,7 +32,7 @@ def db_query(container, query):
     return results  
 
 def db_clean(database_name, container):
-    AccountEndpoint = os.environ["mattceventsink_DOCUMENTDB"]
+    AccountEndpoint = os.environ["DatabaseEndpoint"]
     endpoint = AccountEndpoint.split(";")[0].split('=')[1]
     key = AccountEndpoint.split("AccountKey=")[1]
     client = CosmosClient(endpoint, key)
